@@ -46,17 +46,12 @@ void saveResume() {
     progress.version = wp::PROGRESS_VERSION;
     progress.resume = wp::ResumeSnapshot{};
     progress.resume.valid = true;
-    progress.resume.phase = 0;  // Phase 1 is the only implemented phase today.
+    progress.resume.phase = 0;
     progress.resume.elapsedMs = phaseElapsedMs;
     for (int i = 0; i < wp::BOARD_CELLS; ++i) progress.resume.cells[i] = board.at(i);
     progress.resume.sim = sim;
     progress.resume.inventory = inventory.snapshot();
     progressStore.save(progress);
-    lastSaveMs = wp::nowMs();
-}
-
-void clearResumeAndSave() {
-    progressStore.clearResume(progress);
     lastSaveMs = wp::nowMs();
 }
 
@@ -96,8 +91,6 @@ wp::Outcome currentOutcome() {
 }
 
 int phaseScore() {
-    // Reward a clean, fast construction without making a single mistake
-    // mandatory. Loss is the main penalty; time is a secondary pressure.
     const int timePenalty = static_cast<int>(phaseElapsedMs / 1000u) * 3;
     const int lossPenalty = sim.totalLoss * 20;
     return std::max(100, 1000 - timePenalty - lossPenalty);
@@ -111,21 +104,13 @@ int phaseStars() {
 
 void recordVictoryOnce() {
     if (lastOutcome == wp::Outcome::Victory) return;
-    const int score = phaseScore();
-    const int stars = phaseStars();
-    wp::ProgressStore::recordPhaseResult(progress, 0, score, stars);
+    wp::ProgressStore::recordPhaseResult(progress, 0, phaseScore(), phaseStars());
     progress.resume = wp::ResumeSnapshot{};
     progressStore.save(progress);
 }
 
-void enterMainMenu() {
-    mode = GameMode::MainMenu;
-    menuScreen = wp::MenuScreen::Main;
-    if (gfx) wp::renderMenu(gfx, menuScreen, progress);
-}
-
-void handleMenu() {
-    if (!gfx) return;
+bool handleMenu() {
+    if (!gfx) return false;
 
     if (menuScreen == wp::MenuScreen::Main) {
         if (progress.resume.valid &&
@@ -133,28 +118,28 @@ void handleMenu() {
                                           wp::MENU_CONTINUE.x + wp::MENU_CONTINUE.w - 1,
                                           wp::MENU_CONTINUE.y + wp::MENU_CONTINUE.h - 1)) {
             if (restoreResume()) mode = GameMode::Playing;
-            return;
+            return false;
         }
         if (TouchDriver::consumeTapInArea(wp::MENU_PHASES.x, wp::MENU_PHASES.y,
                                           wp::MENU_PHASES.x + wp::MENU_PHASES.w - 1,
                                           wp::MENU_PHASES.y + wp::MENU_PHASES.h - 1)) {
             menuScreen = wp::MenuScreen::Phases;
             wp::renderMenu(gfx, menuScreen, progress);
-            return;
+            return false;
         }
         if (TouchDriver::consumeTapInArea(wp::MENU_SCORES.x, wp::MENU_SCORES.y,
                                           wp::MENU_SCORES.x + wp::MENU_SCORES.w - 1,
                                           wp::MENU_SCORES.y + wp::MENU_SCORES.h - 1)) {
             menuScreen = wp::MenuScreen::Scores;
             wp::renderMenu(gfx, menuScreen, progress);
-            return;
+            return false;
         }
         if (TouchDriver::consumeTapInArea(wp::MENU_EXIT.x, wp::MENU_EXIT.y,
                                           wp::MENU_EXIT.x + wp::MENU_EXIT.w - 1,
                                           wp::MENU_EXIT.y + wp::MENU_EXIT.h - 1)) {
-            return; // handled by the explicit EXIT button in the host menu later
+            return true;
         }
-        return;
+        return false;
     }
 
     if (menuScreen == wp::MenuScreen::Phases) {
@@ -165,7 +150,7 @@ void handleMenu() {
                 loadLevel(wp::levelConnect());
                 mode = GameMode::Playing;
             }
-            return;
+            return false;
         }
         if (TouchDriver::consumeTapInArea(wp::MENU_BACK.x, wp::MENU_BACK.y,
                                           wp::MENU_BACK.x + wp::MENU_BACK.w - 1,
@@ -173,7 +158,7 @@ void handleMenu() {
             menuScreen = wp::MenuScreen::Main;
             wp::renderMenu(gfx, menuScreen, progress);
         }
-        return;
+        return false;
     }
 
     if (TouchDriver::consumeTapInArea(wp::MENU_BACK.x, wp::MENU_BACK.y,
@@ -182,6 +167,7 @@ void handleMenu() {
         menuScreen = wp::MenuScreen::Main;
         wp::renderMenu(gfx, menuScreen, progress);
     }
+    return false;
 }
 
 }  // namespace
@@ -199,16 +185,13 @@ void begin() {
 }
 
 bool loop() {
-    if (mode != GameMode::Playing) {
-        handleMenu();
-        return false;
-    }
+    if (mode != GameMode::Playing) return handleMenu();
 
     const wp::WpAction action = wp::pollInput();
 
     if (action.type == wp::WpActionType::ExitTapped) {
         saveResume();
-        return true;  // Back to the host Games menu; resume remains available.
+        return true;
     }
 
     if (action.type == wp::WpActionType::RestartTapped) {
