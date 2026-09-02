@@ -239,3 +239,52 @@ Suggested progression:
 - World 4 — Height: side-view, gravity and pumps.
 - World 5 — Temperature: hot/cold sources, separate streams and Mixer.
 - Later worlds combine the systems.
+
+## 22. Main menu and game flow
+
+Water Pipe has its own lightweight menu inside the host Games entry.
+
+**Main menu**
+
+- **CONTINUE** — resumes the most recent unfinished phase from its saved board state.
+- **PHASES** — opens the phase-selection screen.
+- **SCORES** — opens the top-five high-score table.
+- **EXIT** — returns to the host Games menu.
+
+The phase screen shows six slots in the first UI version. Only implemented phases are selectable; future phases appear locked until their content exists and campaign progression unlocks them.
+
+During a phase the bottom-right HUD has two persistent touch controls:
+
+- **RESTART** — immediately resets the current phase, without resetting campaign stars or scores.
+- **EXIT** — saves the current phase and returns to the host Games menu.
+
+Re-entering Water Pipe starts at the main menu. If a phase was exited before completion, CONTINUE restores the exact saved board, water simulation, queue/HOLD state and elapsed phase time.
+
+## 23. Saving and persistence
+
+- Progress is saved automatically; there is no separate Save button.
+- The active phase is saved when the player exits, when a phase ends, and periodically during play.
+- Campaign unlocks, best stars and high scores survive a restart/power cycle on the ESP32 target.
+- A completed phase clears the resume snapshot so CONTINUE never reopens an already completed phase.
+- Restarting a phase creates a fresh resume snapshot for that phase.
+- The save format is versioned so future gameplay changes can invalidate/migrate old saves safely.
+
+## 24. Points and high scores
+
+Every successful phase completion produces a score.
+
+Initial scoring model:
+
+- Start at 1000 points.
+- Lose 3 points per elapsed second.
+- Lose 20 points per unit of water loss.
+- Minimum completion score is 100.
+- The result is inserted into a persistent top-five high-score table.
+
+The scoring model is deliberately simple for the first implementation. It can later add bonuses for construction efficiency, material economy, pressure safety and unused inventory without changing the menu/save architecture.
+
+The high-score table is global to the Water Pipe campaign, while each phase retains its best star count.
+
+## 25. First playable campaign behavior
+
+The first implementation contains Phase 1 — Connect. The menu already has the final campaign flow: start/replay a phase, continue an unfinished phase, persist progress, record stars and score, and expose a high-score table. Additional phases can be added to the data-driven level system without changing the navigation model.
