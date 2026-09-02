@@ -30,6 +30,6 @@ struct WpHudCache {
 void renderInit(GfxCompat *g, Board &board);
 void renderBoard(GfxCompat *g, Board &board, const SimState &sim);
 void renderHud(GfxCompat *g, const WpInventory &inv, const SimState &sim, const Level &level,
-               Outcome outcome, bool removeMode, WpHudCache &cache);
+               Outcome outcome, WpHudCache &cache);
 
 }  // namespace wp
