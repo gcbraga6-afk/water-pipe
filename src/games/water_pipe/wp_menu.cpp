@@ -73,13 +73,10 @@ void drawText(GfxCompat *g, int x, int y, const char *text, int scale, uint16_t 
     for (const char *p = text; *p; ++p) {
         uint8_t rows[7];
         glyph(*p, rows);
-        for (int ry = 0; ry < 7; ++ry) {
-            for (int rx = 0; rx < 5; ++rx) {
-                if (rows[ry] & (1u << (4 - rx))) {
+        for (int ry = 0; ry < 7; ++ry)
+            for (int rx = 0; rx < 5; ++rx)
+                if (rows[ry] & (1u << (4 - rx)))
                     g->fillRect(x + rx * scale, y + ry * scale, scale, scale, color);
-                }
-            }
-        }
         x += 6 * scale;
     }
 }
@@ -100,9 +97,21 @@ void button(GfxCompat *g, const MenuRect &r, const char *label, bool enabled, bo
 }
 
 void stars(GfxCompat *g, int x, int y, int count) {
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < 3; ++i)
         drawText(g, x + i * 28, y, "*", 3, i < count ? kGold : kMuted);
-    }
+}
+
+void number(GfxCompat *g, int x, int y, int value, int scale, uint16_t color) {
+    char rev[12];
+    char out[12];
+    int n = value;
+    int rn = 0;
+    if (n == 0) rev[rn++] = '0';
+    while (n > 0 && rn < 11) { rev[rn++] = char('0' + n % 10); n /= 10; }
+    int pos = 0;
+    while (rn) out[pos++] = rev[--rn];
+    out[pos] = 0;
+    drawText(g, x, y, out, scale, color);
 }
 
 void drawPipeLogo(GfxCompat *g) {
@@ -117,24 +126,18 @@ void renderMain(GfxCompat *g, const ProgressData &p) {
     drawPipeLogo(g);
     centeredText(g, 18, "WATER PIPE", 4, kText);
     centeredText(g, 112, "BUILD - FLOW - SURVIVE", 2, kMuted);
-
     button(g, MENU_CONTINUE, "CONTINUE", p.resume.valid, true);
     button(g, MENU_PHASES, "PHASES", true, false);
     button(g, MENU_SCORES, "SCORES", true, false);
-
     centeredText(g, 325, "STARS", 2, kMuted);
-    stars(g, 346, 349, [&](){ int s=0; for(int i=0;i<MAX_PHASES;++i)s+=p.stars[i]; return s; }());
-
+    int totalStars = 0;
+    for (int i = 0; i < MAX_PHASES; ++i) totalStars += p.stars[i];
+    number(g, 382, 349, totalStars, 3, kGold);
     if (p.highScores[0].score > 0) {
         centeredText(g, 382, "BEST", 2, kMuted);
-        char score[16];
-        int n = p.highScores[0].score;
-        int pos = 0;
-        if (n == 0) score[pos++]='0';
-        else { char rev[12]; int rn=0; while(n>0){rev[rn++]=char('0'+n%10);n/=10;} while(rn)score[pos++]=rev[--rn]; }
-        score[pos]=0;
-        centeredText(g, 401, score, 3, kGold);
+        number(g, 377, 401, p.highScores[0].score, 3, kGold);
     }
+    button(g, MENU_EXIT, "EXIT", true, false);
 }
 
 void renderPhases(GfxCompat *g, const ProgressData &p) {
@@ -147,9 +150,9 @@ void renderPhases(GfxCompat *g, const ProgressData &p) {
         g->fillRoundRect(r.x, r.y, r.w, r.h, 10, unlocked ? kPanel2 : kPanel);
         g->drawRoundRect(r.x, r.y, r.w, r.h, 10, unlocked ? kBlue : kLocked);
         char num[2] = {char('1' + i), 0};
-        drawText(g, r.x + 31, r.y + 12, num, 5, unlocked ? kText : kMuted);
-        if (unlocked) stars(g, r.x + 12, r.y + 50, p.stars[i]);
-        else centeredText(g, r.y + 50, "LOCKED", 1, kMuted);
+        drawText(g, r.x + 31, r.y + 10, num, 5, unlocked ? kText : kMuted);
+        if (unlocked) stars(g, r.x + 12, r.y + 48, p.stars[i]);
+        else drawText(g, r.x + 13, r.y + 50, "LOCKED", 1, kMuted);
     }
     button(g, MENU_BACK, "BACK", true, false);
 }
@@ -169,10 +172,7 @@ void renderScores(GfxCompat *g, const ProgressData &p) {
         char phase[2] = {char('1' + p.highScores[i].phase), 0};
         drawText(g, 225, y + 11, "PHASE", 2, kMuted);
         drawText(g, 265, y + 11, phase, 2, kText);
-        int n = p.highScores[i].score;
-        char rev[12]; int rn=0; while(n>0){rev[rn++]=char('0'+n%10);n/=10;}
-        char score[12]; int pos=0; while(rn)score[pos++]=rev[--rn]; score[pos]=0;
-        drawText(g, 500, y + 11, score, 2, kGold);
+        number(g, 500, y + 8, p.highScores[i].score, 2, kGold);
     }
     button(g, MENU_BACK, "BACK", true, false);
 }
