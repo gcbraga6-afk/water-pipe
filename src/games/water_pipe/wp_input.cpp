@@ -10,6 +10,7 @@ namespace {
 constexpr uint32_t HOLD_MS = 450;
 bool fingerDown = false;
 bool longPressFired = false;
+bool suppressNextTap = false;
 uint32_t fingerDownMs = 0;
 int fingerCol = -1;
 int fingerRow = -1;
@@ -48,16 +49,23 @@ WpAction pollInput() {
             return {WpActionType::CellHeld, fingerCol, fingerRow};
         }
 
-        // Keep the touch pending while it is held. The tap is handled after
-        // release by consumeTapInArea().
         return {};
     }
 
     if (fingerDown) {
+        // If this touch already produced the hold action, the release must
+        // not generate a second tap/rotation for the same physical gesture.
+        suppressNextTap = longPressFired;
         fingerDown = false;
         longPressFired = false;
         fingerCol = -1;
         fingerRow = -1;
+    }
+
+    if (suppressNextTap) {
+        suppressNextTap = false;
+        // The real driver owns the release edge. There is no second action.
+        return {};
     }
 
     if (TouchDriver::consumeTapInArea(HOLD_RECT.x, HOLD_RECT.y,
