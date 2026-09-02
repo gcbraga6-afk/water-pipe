@@ -12,6 +12,7 @@
 namespace wp {
 
 constexpr int MAX_PHASES = 8;
+constexpr int IMPLEMENTED_PHASES = 1;
 constexpr int MAX_HIGHSCORES = 5;
 constexpr uint32_t PROGRESS_MAGIC = 0x57505431u;  // "WPT1"
 constexpr uint16_t PROGRESS_VERSION = 1;
