@@ -6,7 +6,14 @@
 
 namespace wp {
 
-enum class WpActionType { None, CellTapped, CellHeld, HoldTapped, RestartTapped };
+enum class WpActionType {
+    None,
+    CellTapped,
+    CellHeld,
+    HoldTapped,
+    RestartTapped,
+    ExitTapped,
+};
 
 struct WpAction {
     WpActionType type = WpActionType::None;
