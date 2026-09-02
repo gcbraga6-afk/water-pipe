@@ -1,0 +1,5 @@
+# Native desktop build output (docs/HARDWARE.md target is ESP32-S3/PlatformIO;
+# this CMake build is only for running tests/wp_tests.cpp and tools/wp_demo.cpp locally).
+/build/
+wp_demo.ppm
+wp_demo.png
