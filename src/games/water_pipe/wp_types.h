@@ -7,10 +7,10 @@
 
 namespace wp {
 
-// MVP board size (docs/GAMEPLAY.md section 2, docs/TECHNICAL_DESIGN.md
-// section 4).
+// MVP board size: 10 x 7. The extra row uses the available vertical space
+// on the 800x480 CrowPanel display without shrinking the 64px cells.
 constexpr int BOARD_COLS = 10;
-constexpr int BOARD_ROWS = 6;
+constexpr int BOARD_ROWS = 7;
 constexpr int BOARD_CELLS = BOARD_COLS * BOARD_ROWS;
 
 // Direction bitmask (docs/TECHNICAL_DESIGN.md section 5).
