@@ -23,7 +23,9 @@ Initial target: **CrowPanel Advance 7-inch** hardware project (ESP32-S3, Frida f
 
 ## Code
 
-`src/games/water_pipe/` implements the MVP scope from `docs/TECHNICAL_DESIGN.md` section 24: a 10×6 board, straight/curve/T/cross/cap pieces, one source and target, progressive filling, open-end loss, placement/rotation/removal, a NEXT PIPE queue with HOLD, restart, and victory/defeat — as a single introductory phase ("Phase 1 - Connect").
+`src/games/water_pipe/` implements the MVP scope from `docs/TECHNICAL_DESIGN.md` section 24: a 10×7 board, straight/curve/T/cross/cap pieces, one source and target, progressive filling, open-end loss, placement/rotation/removal, a NEXT PIPE queue with HOLD, restart/exit controls, campaign menu, phase selection, persistent resume, stars and high scores — as a single introductory phase ("Phase 1 - Connect").
+
+The Water Pipe main menu provides **Continue / Phases / Scores / Exit**. Leaving an active phase saves the exact board, simulation and inventory state so Continue can restore it later. Completed phases record a score and best star count.
 
 The hydraulic simulation and board logic have no rendering or hardware dependency. `src/games/water_pipe/water_pipe.h` exposes `begin()`/`loop()`, the same contract the host firmware uses for every game (see `docs/HARDWARE.md` section 6).
 
@@ -34,6 +36,6 @@ The hydraulic simulation and board logic have no rendering or hardware dependenc
 ```
 cmake -S . -B build
 cmake --build build
-./build/wp_tests   # pure-logic checks: pieces, board rules, simulation, inventory
+./build/wp_tests   # pure-logic checks: pieces, board rules, simulation, inventory, progress
 ./build/wp_demo    # builds the reference solution via simulated taps and writes wp_demo.ppm
 ```
