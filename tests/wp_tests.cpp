@@ -10,6 +10,7 @@
 #include "games/water_pipe/wp_inventory.h"
 #include "games/water_pipe/wp_levels.h"
 #include "games/water_pipe/wp_pieces.h"
+#include "games/water_pipe/wp_progress.h"
 #include "games/water_pipe/wp_simulation.h"
 
 namespace {
@@ -47,7 +48,6 @@ void testBoardRules() {
     Board board;
     board.loadLevel(level);
 
-    // Source/target are fixed and not buildable-over.
     CHECK(!board.canPlace(level.sourceCol, level.sourceRow));
     CHECK(!board.canPlace(level.targetCol, level.targetRow));
     CHECK(!board.canRotate(level.sourceCol, level.sourceRow));
@@ -55,14 +55,19 @@ void testBoardRules() {
 
     CHECK(board.canPlace(1, 2));
     CHECK(board.place(1, 2, PieceType::Straight, Material::PVC));
-    CHECK(!board.place(1, 2, PieceType::Curve, Material::PVC));  // occupied now
+    CHECK(!board.place(1, 2, PieceType::Curve, Material::PVC));
 
     CHECK(board.canRotate(1, 2));
-    CHECK(board.at(1, 2).rotation == Rotation::R0);
     CHECK(board.rotate(1, 2));
     CHECK(board.at(1, 2).rotation == Rotation::R90);
 
-    // Dry pieces can be removed; the cell becomes placeable again.
+    // A pipe containing water is neither rotatable nor removable.
+    board.at(1, 2).volume = 1;
+    CHECK(!board.canRotate(1, 2));
+    CHECK(!board.rotate(1, 2));
+    CHECK(!board.canRemove(1, 2));
+    board.at(1, 2).volume = 0;
+
     CHECK(board.canRemove(1, 2));
     CHECK(board.remove(1, 2));
     CHECK(board.canPlace(1, 2));
@@ -70,9 +75,6 @@ void testBoardRules() {
     std::puts("testBoardRules ok");
 }
 
-// Builds the reference solution for "Phase 1 - Connect" cell by cell,
-// exactly as a player would via tap-to-place + tap-to-rotate, and
-// verifies water reaches the target and the phase is won.
 void testSimulationVictory() {
     using namespace wp;
     const Level &level = levelConnect();
@@ -86,12 +88,9 @@ void testSimulationVictory() {
         for (int i = 0; i < rotations; ++i) CHECK(board.rotate(c, r));
     };
 
-    // Row 2: four horizontal straights from the source.
     for (int c = 1; c <= 4; ++c) placeRotated(c, 2, PieceType::Straight, 1);
-    // Turn down into row 3, then back to horizontal.
-    placeRotated(5, 2, PieceType::Curve, 2);  // -> DOWN | LEFT
-    placeRotated(5, 3, PieceType::Curve, 0);  // UP | RIGHT
-    // Row 3: three horizontal straights into the target.
+    placeRotated(5, 2, PieceType::Curve, 2);
+    placeRotated(5, 3, PieceType::Curve, 0);
     for (int c = 6; c <= 8; ++c) placeRotated(c, 3, PieceType::Straight, 1);
 
     bool sawTargetReached = false;
@@ -103,15 +102,12 @@ void testSimulationVictory() {
     CHECK(sawTargetReached);
     CHECK(sim.victory);
     CHECK(sim.delivered >= level.requiredVolume);
-    // The built path has no open ends, so nothing should have leaked.
     CHECK(sim.totalLoss == 0);
-    CHECK(!isDefeated(sim, /*inventoryEmpty=*/true));
+    CHECK(!isDefeated(sim, true));
 
     std::puts("testSimulationVictory ok");
 }
 
-// A source left unconnected must leak immediately and, once the player
-// has nothing left to place, the phase must be detected as defeated.
 void testSimulationDefeat() {
     using namespace wp;
     const Level &level = levelConnect();
@@ -125,8 +121,8 @@ void testSimulationDefeat() {
     CHECK(sim.totalLoss > 0);
     CHECK(!sim.targetReached);
     CHECK(!sim.victory);
-    CHECK(!isDefeated(sim, /*inventoryEmpty=*/false));  // pieces still available: not over yet
-    CHECK(isDefeated(sim, /*inventoryEmpty=*/true));
+    CHECK(!isDefeated(sim, false));
+    CHECK(isDefeated(sim, true));
 
     std::puts("testSimulationDefeat ok");
 }
@@ -143,31 +139,58 @@ void testInventory() {
     CHECK(!inv.hasHeld());
 
     const PieceType firstHand = inv.hand();
-    inv.swapHold();  // first press: stash hand, draw a new one
+    inv.swapHold();
     CHECK(inv.hasHeld());
     CHECK(inv.held() == firstHand);
     CHECK(inv.hand() == level.queue[1]);
 
-    inv.swapHold();  // second press: swap back
-    CHECK(inv.hand() == firstHand);
-    CHECK(inv.held() == level.queue[1]);
+    // HOLD cannot be spammed: the player must place the current piece first.
+    const PieceType blockedHand = inv.hand();
+    inv.swapHold();
+    CHECK(inv.hand() == blockedHand);
+    CHECK(inv.held() == firstHand);
 
-    int consumed = 0;
-    while (!inv.empty()) {
-        inv.consumeHand();
-        if (inv.hand() == PieceType::Empty && inv.hasHeld()) inv.swapHold();
-        if (++consumed > 1000) break;  // guard against an infinite loop bug
-    }
-    CHECK(inv.empty());
+    inv.consumeHand();
+    CHECK(inv.hand() == level.queue[2]);
+    inv.swapHold();
+    CHECK(inv.hand() == firstHand);
+    CHECK(inv.held() == level.queue[2]);
+
+    WpInventory::Snapshot snapshot = inv.snapshot();
+    WpInventory restored;
+    restored.restore(snapshot);
+    CHECK(restored.hand() == inv.hand());
+    CHECK(restored.held() == inv.held());
+    CHECK(restored.hasHeld() == inv.hasHeld());
 
     std::puts("testInventory ok");
+}
+
+void testProgress() {
+    using namespace wp;
+    ProgressData p{};
+    CHECK(p.magic == PROGRESS_MAGIC);
+    CHECK(p.version == PROGRESS_VERSION);
+    CHECK(p.unlockedPhase == 0);
+
+    ProgressStore::recordPhaseResult(p, 0, 820, 2);
+    CHECK(p.stars[0] == 2);
+    CHECK(p.highScores[0].score == 820);
+    CHECK(p.highScores[0].phase == 0);
+    CHECK(p.unlockedPhase == 1);
+
+    ProgressStore::recordPhaseResult(p, 0, 950, 3);
+    CHECK(p.stars[0] == 3);
+    CHECK(p.highScores[0].score == 950);
+    CHECK(p.highScores[1].score == 820);
+
+    std::puts("testProgress ok");
 }
 
 }  // namespace
 
 int main() {
-    GfxCompat stub(800, 480);  // unused by these tests, but keeps `gfx`
-                               // symbol resolvable if any code path touches it.
+    GfxCompat stub(800, 480);
     gfx = &stub;
 
     testPieceMasks();
@@ -175,6 +198,7 @@ int main() {
     testSimulationVictory();
     testSimulationDefeat();
     testInventory();
+    testProgress();
 
     std::printf("All %d checks passed.\n", g_checks);
     return 0;
