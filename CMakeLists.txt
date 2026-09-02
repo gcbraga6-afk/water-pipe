@@ -23,6 +23,8 @@ set(WP_GAME_SOURCES
     src/games/water_pipe/wp_inventory.cpp
     src/games/water_pipe/wp_input.cpp
     src/games/water_pipe/wp_render.cpp
+    src/games/water_pipe/wp_menu.cpp
+    src/games/water_pipe/wp_progress.cpp
     src/games/water_pipe/wp_time.cpp
     src/games/water_pipe/water_pipe.cpp
 )
