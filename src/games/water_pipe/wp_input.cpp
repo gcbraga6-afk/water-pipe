@@ -1,6 +1,7 @@
 #include "wp_input.h"
 
 #include "core/TouchDriver.h"
+#include "wp_board.h"
 #include "wp_layout.h"
 #include "wp_time.h"
 
