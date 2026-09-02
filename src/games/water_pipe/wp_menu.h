@@ -21,14 +21,7 @@ constexpr MenuRect MENU_CONTINUE = {180, 175, 440, 58};
 constexpr MenuRect MENU_PHASES   = {180, 245, 210, 58};
 constexpr MenuRect MENU_SCORES   = {410, 245, 210, 58};
 constexpr MenuRect MENU_BACK     = {60, 400, 180, 54};
-
-constexpr int PHASE_BUTTON_X = 150;
-constexpr int PHASE_BUTTON_Y = 125;
-constexpr int PHASE_BUTTON_W = 90;
-constexpr int PHASE_BUTTON_H = 72;
-constexpr int PHASE_BUTTON_GAP_X = 18;
-constexpr int PHASE_BUTTON_GAP_Y = 18;
-constexpr int PHASE_COLUMNS = 4;
+constexpr MenuRect MENU_EXIT     = {560, 400, 180, 54};
 
 constexpr MenuRect MENU_PHASE_BUTTONS[6] = {
     {150, 125, 90, 72}, {258, 125, 90, 72}, {366, 125, 90, 72}, {474, 125, 90, 72},
