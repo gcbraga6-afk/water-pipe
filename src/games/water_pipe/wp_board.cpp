@@ -47,16 +47,13 @@ bool Board::place(int col, int row, PieceType type, Material material) {
 bool Board::canRotate(int col, int row) const {
     if (!inBounds(col, row)) return false;
     const Cell &c = at(col, row);
-    return c.type != PieceType::Empty && !c.fixed;
+    return c.type != PieceType::Empty && !c.fixed && c.volume == 0;
 }
 
 bool Board::rotate(int col, int row) {
     if (!canRotate(col, row)) return false;
     Cell &c = at(col, row);
     c.rotation = rotateCW(c.rotation);
-    // Ports changed shape: this cell must be re-evaluated by the
-    // simulation before it can carry water again.
-    c.volume = 0;
     c.dirty = true;
     return true;
 }
@@ -64,8 +61,6 @@ bool Board::rotate(int col, int row) {
 bool Board::canRemove(int col, int row) const {
     if (!inBounds(col, row)) return false;
     const Cell &c = at(col, row);
-    // A pipe can only be removed when it contains no water
-    // (docs/GAMEPLAY.md section 4, docs/PIECES.md section 10).
     return c.type != PieceType::Empty && !c.fixed && c.volume == 0;
 }
 
