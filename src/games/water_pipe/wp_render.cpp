@@ -34,6 +34,7 @@ const uint16_t kMeterTrack = col(48, 51, 54);
 const uint16_t kMeterLoss = col(210, 70, 40);
 const uint16_t kMeterDelivered = col(45, 165, 90);
 const uint16_t kRestartBtn = col(62, 68, 76);
+const uint16_t kExitBtn = col(45, 58, 68);
 const uint16_t kVictory = col(45, 180, 85);
 const uint16_t kDefeat = col(205, 50, 50);
 const uint16_t kWhite = col(245, 245, 245);
@@ -60,9 +61,7 @@ void drawPipeLayer(GfxCompat *g, int x, int y, int size, uint8_t mask,
 
 void drawPipeVisual(GfxCompat *g, int x, int y, int size, uint8_t mask,
                     Material material, bool water, bool leaking) {
-    // Strong dark silhouette keeps empty pipes visible against the pale tile.
     drawPipeLayer(g, x, y, size, mask, kPipeOutline, kPipeOutline, std::max(20, size / 3));
-
     const uint16_t body = water ? (leaking ? kWaterLeak : kWater) : materialColor(material);
     const uint16_t highlight = water ? kWaterHighlight : materialHighlight(material);
     drawPipeLayer(g, x, y, size, mask, body, highlight, std::max(13, size / 5));
@@ -120,10 +119,29 @@ void drawMeter(GfxCompat *g, const Rect &r, int value, int maxValue, uint16_t fi
     if (w > 0) g->fillRoundRect(r.x + 2, r.y + 2, w, r.h - 4, 3, fillColor);
 }
 
+void drawRestartIcon(GfxCompat *g, const Rect &r, uint16_t color) {
+    const int cx = r.x + r.w / 2;
+    const int cy = r.y + r.h / 2;
+    const int rad = 15;
+    g->drawRoundRect(cx - rad, cy - rad, rad * 2, rad * 2, rad, color);
+    g->fillRect(cx + 3, cy - rad - 2, rad + 7, 12, kRestartBtn);
+    g->fillTriangle(cx + rad, cy - rad, cx + rad + 8, cy - rad - 7,
+                    cx + rad + 8, cy - rad + 5, color);
+}
+
+void drawExitIcon(GfxCompat *g, const Rect &r, uint16_t color) {
+    const int x = r.x + 12;
+    const int y = r.y + 12;
+    g->drawRoundRect(x, y, 22, 32, 3, color);
+    g->fillRect(x + 5, y + 5, 17, 22, kExitBtn);
+    g->drawLine(x + 8, y + 16, r.x + r.w - 10, y + 16, color);
+    g->fillTriangle(r.x + r.w - 10, y + 16, r.x + r.w - 19, y + 9,
+                    r.x + r.w - 19, y + 23, color);
+}
+
 }  // namespace
 
 void renderInit(GfxCompat *g, Board &board) {
-    // Dark surround first. The board is the only large light surface.
     g->fillRect(0, 0, SCREEN_W, SCREEN_H, kHudPanel);
     g->fillRoundRect(BOARD_ORIGIN_X - 4, BOARD_ORIGIN_Y - 4,
                      BOARD_PIXEL_W + 8, BOARD_PIXEL_H + 8, 6, kBoardBgA);
@@ -170,26 +188,26 @@ void renderHud(GfxCompat *g, const WpInventory &inv, const SimState &sim, const 
     }
 
     if (outcome != cache.outcome) {
-        const uint16_t btnColor = outcome == Outcome::Victory ? kVictory
-                                   : outcome == Outcome::Defeat ? kDefeat
-                                                                 : kRestartBtn;
-        g->fillRoundRect(RESTART_RECT.x, RESTART_RECT.y, RESTART_RECT.w, RESTART_RECT.h, 6, btnColor);
-        g->drawRoundRect(RESTART_RECT.x, RESTART_RECT.y, RESTART_RECT.w, RESTART_RECT.h, 6, kHudBorder);
-
-        const int cx = RESTART_RECT.x + RESTART_RECT.w / 2;
-        const int cy = RESTART_RECT.y + RESTART_RECT.h / 2;
-        const int rad = RESTART_RECT.h / 3;
-        g->drawRoundRect(cx - rad, cy - rad, rad * 2, rad * 2, rad, kWhite);
-        g->fillTriangle(cx + rad, cy - rad, cx + rad + 6, cy - rad - 6,
-                        cx + rad + 6, cy - rad + 6, kWhite);
-
-        const uint16_t frame = outcome == Outcome::Victory ? kVictory : outcome == Outcome::Defeat ? kDefeat : kGrid;
+        const uint16_t frame = outcome == Outcome::Victory ? kVictory
+                             : outcome == Outcome::Defeat ? kDefeat : kGrid;
         for (int i = 0; i < 3; ++i) {
             g->drawRoundRect(BOARD_ORIGIN_X - 1 - i, BOARD_ORIGIN_Y - 1 - i,
                              BOARD_PIXEL_W + 2 + 2 * i, BOARD_PIXEL_H + 2 + 2 * i, 5, frame);
         }
         cache.outcome = outcome;
     }
+
+    // These controls stay visible throughout the phase, including after a
+    // victory/defeat. Restart is always the current phase; exit saves and
+    // returns to the Water Pipe main menu.
+    g->fillRoundRect(RESTART_RECT.x, RESTART_RECT.y, RESTART_RECT.w, RESTART_RECT.h, 6,
+                     outcome == Outcome::Defeat ? kDefeat : kRestartBtn);
+    g->drawRoundRect(RESTART_RECT.x, RESTART_RECT.y, RESTART_RECT.w, RESTART_RECT.h, 6, kHudBorder);
+    drawRestartIcon(g, RESTART_RECT, kWhite);
+
+    g->fillRoundRect(EXIT_RECT.x, EXIT_RECT.y, EXIT_RECT.w, EXIT_RECT.h, 6, kExitBtn);
+    g->drawRoundRect(EXIT_RECT.x, EXIT_RECT.y, EXIT_RECT.w, EXIT_RECT.h, 6, kHudBorder);
+    drawExitIcon(g, EXIT_RECT, kWhite);
 }
 
 }  // namespace wp
