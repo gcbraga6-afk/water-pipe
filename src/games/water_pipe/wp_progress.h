@@ -13,6 +13,8 @@ namespace wp {
 
 constexpr int MAX_PHASES = 8;
 constexpr int MAX_HIGHSCORES = 5;
+constexpr uint32_t PROGRESS_MAGIC = 0x57505431u;  // "WPT1"
+constexpr uint16_t PROGRESS_VERSION = 1;
 
 struct HighScore {
     int score = 0;
@@ -29,8 +31,8 @@ struct ResumeSnapshot {
 };
 
 struct ProgressData {
-    uint32_t magic = 0;
-    uint16_t version = 0;
+    uint32_t magic = PROGRESS_MAGIC;
+    uint16_t version = PROGRESS_VERSION;
     uint8_t unlockedPhase = 0;
     uint8_t stars[MAX_PHASES] = {};
     HighScore highScores[MAX_HIGHSCORES] = {};
