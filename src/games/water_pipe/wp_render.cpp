@@ -54,15 +54,13 @@ void drawPipeLayer(GfxCompat *g, int x, int y, int size, uint8_t mask,
     if (mask & DIR_LEFT) g->fillRoundRect(x + 2, cy - t / 2, size / 2 + t / 2, t, radius, body);
     if (mask & DIR_RIGHT) g->fillRoundRect(cx - 2, cy - t / 2, size / 2 + t / 2, t, radius, body);
 
-    // Small highlight on the upper/left side makes the pipe readable against
-    // the light tile even when it is empty.
     const int h = std::max(2, t / 7);
     g->fillRoundRect(cx - t / 2 + 3, cy - t / 2 + 2, t - 6, h, 2, highlight);
 }
 
 void drawPipeVisual(GfxCompat *g, int x, int y, int size, uint8_t mask,
                     Material material, bool water, bool leaking) {
-    // Dark silhouette first: this is the key contrast against the pale tile.
+    // Strong dark silhouette keeps empty pipes visible against the pale tile.
     drawPipeLayer(g, x, y, size, mask, kPipeOutline, kPipeOutline, std::max(20, size / 3));
 
     const uint16_t body = water ? (leaking ? kWaterLeak : kWater) : materialColor(material);
@@ -99,10 +97,7 @@ void drawCell(GfxCompat *g, Board &board, int col_, int row, const SimState &sim
                        c.material, c.volume > 0, leaking);
     }
 
-    if (leaking) {
-        g->fillCircle(r.x + r.w - 9, r.y + 9, 6, kLeakDot);
-    }
-
+    if (leaking) g->fillCircle(r.x + r.w - 9, r.y + 9, 6, kLeakDot);
     c.dirty = false;
 }
 
@@ -128,8 +123,7 @@ void drawMeter(GfxCompat *g, const Rect &r, int value, int maxValue, uint16_t fi
 }  // namespace
 
 void renderInit(GfxCompat *g, Board &board) {
-    // Dark surround first. The board is deliberately the only large light
-    // surface, eliminating the accidental white strip below the old HUD.
+    // Dark surround first. The board is the only large light surface.
     g->fillRect(0, 0, SCREEN_W, SCREEN_H, kHudPanel);
     g->fillRoundRect(BOARD_ORIGIN_X - 4, BOARD_ORIGIN_Y - 4,
                      BOARD_PIXEL_W + 8, BOARD_PIXEL_H + 8, 6, kBoardBgA);
@@ -143,8 +137,8 @@ void renderBoard(GfxCompat *g, Board &board, const SimState &sim) {
     }
 }
 
-void renderHud(GfxCompat *g, const WpInventory &inv, const SimState &sim, const Level &level, Outcome outcome,
-               bool /*removeMode*/, WpHudCache &cache) {
+void renderHud(GfxCompat *g, const WpInventory &inv, const SimState &sim, const Level &level,
+               Outcome outcome, WpHudCache &cache) {
     if (inv.hand() != cache.hand) {
         drawPreviewSlot(g, QUEUE_RECT[0], inv.hand(), Material::PVC, kHudBorderActive);
         cache.hand = inv.hand();
