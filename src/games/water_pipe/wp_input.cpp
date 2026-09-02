@@ -2,22 +2,73 @@
 
 #include "core/TouchDriver.h"
 #include "wp_layout.h"
+#include "wp_time.h"
 
 namespace wp {
 
+namespace {
+constexpr uint32_t HOLD_MS = 450;
+bool fingerDown = false;
+bool longPressFired = false;
+uint32_t fingerDownMs = 0;
+int fingerCol = -1;
+int fingerRow = -1;
+
+bool pointInBoard(int x, int y, int &col, int &row) {
+    if (x < BOARD_ORIGIN_X || x >= BOARD_ORIGIN_X + BOARD_PIXEL_W ||
+        y < BOARD_ORIGIN_Y || y >= BOARD_ORIGIN_Y + BOARD_PIXEL_H) {
+        return false;
+    }
+    col = (x - BOARD_ORIGIN_X) / CELL_SIZE;
+    row = (y - BOARD_ORIGIN_Y) / CELL_SIZE;
+    return Board::inBounds(col, row);
+}
+}  // namespace
+
 WpAction pollInput() {
-    if (TouchDriver::consumeTapInArea(HOLD_RECT.x, HOLD_RECT.y, HOLD_RECT.x + HOLD_RECT.w - 1,
-                                       HOLD_RECT.y + HOLD_RECT.h - 1)) {
+    // A real touch is tracked while the finger remains down. We suppress
+    // the normal tap until release so a long press cannot rotate first.
+    if (TouchDriver::rawTouched()) {
+        const int x = TouchDriver::rawX();
+        const int y = TouchDriver::rawY();
+        int col = -1;
+        int row = -1;
+        const bool onBoard = pointInBoard(x, y, col, row);
+
+        if (!fingerDown) {
+            fingerDown = true;
+            longPressFired = false;
+            fingerDownMs = nowMs();
+            fingerCol = col;
+            fingerRow = row;
+        }
+
+        if (onBoard && !longPressFired && nowMs() - fingerDownMs >= HOLD_MS) {
+            longPressFired = true;
+            return {WpActionType::CellHeld, fingerCol, fingerRow};
+        }
+
+        // Keep the touch pending while it is held. The tap is handled after
+        // release by consumeTapInArea().
+        return {};
+    }
+
+    if (fingerDown) {
+        fingerDown = false;
+        longPressFired = false;
+        fingerCol = -1;
+        fingerRow = -1;
+    }
+
+    if (TouchDriver::consumeTapInArea(HOLD_RECT.x, HOLD_RECT.y,
+                                      HOLD_RECT.x + HOLD_RECT.w - 1,
+                                      HOLD_RECT.y + HOLD_RECT.h - 1)) {
         return {WpActionType::HoldTapped, -1, -1};
     }
-    if (TouchDriver::consumeTapInArea(RESTART_RECT.x, RESTART_RECT.y, RESTART_RECT.x + RESTART_RECT.w - 1,
-                                       RESTART_RECT.y + RESTART_RECT.h - 1)) {
+    if (TouchDriver::consumeTapInArea(RESTART_RECT.x, RESTART_RECT.y,
+                                      RESTART_RECT.x + RESTART_RECT.w - 1,
+                                      RESTART_RECT.y + RESTART_RECT.h - 1)) {
         return {WpActionType::RestartTapped, -1, -1};
-    }
-    if (TouchDriver::consumeTapInArea(REMOVE_TOGGLE_RECT.x, REMOVE_TOGGLE_RECT.y,
-                                       REMOVE_TOGGLE_RECT.x + REMOVE_TOGGLE_RECT.w - 1,
-                                       REMOVE_TOGGLE_RECT.y + REMOVE_TOGGLE_RECT.h - 1)) {
-        return {WpActionType::RemoveModeToggled, -1, -1};
     }
     for (int row = 0; row < BOARD_ROWS; ++row) {
         for (int col = 0; col < BOARD_COLS; ++col) {
