@@ -5,15 +5,15 @@
 namespace wp {
 namespace {
 
-constexpr uint16_t kBg = GfxCompat::color565(18, 22, 28);
-constexpr uint16_t kPanel = GfxCompat::color565(29, 35, 43);
-constexpr uint16_t kPanel2 = GfxCompat::color565(38, 46, 56);
-constexpr uint16_t kText = GfxCompat::color565(235, 241, 246);
-constexpr uint16_t kMuted = GfxCompat::color565(145, 157, 169);
-constexpr uint16_t kBlue = GfxCompat::color565(54, 170, 235);
-constexpr uint16_t kBlueDark = GfxCompat::color565(29, 89, 126);
-constexpr uint16_t kGold = GfxCompat::color565(247, 194, 68);
-constexpr uint16_t kLocked = GfxCompat::color565(67, 75, 84);
+const uint16_t kBg = GfxCompat::color565(18, 22, 28);
+const uint16_t kPanel = GfxCompat::color565(29, 35, 43);
+const uint16_t kPanel2 = GfxCompat::color565(38, 46, 56);
+const uint16_t kText = GfxCompat::color565(235, 241, 246);
+const uint16_t kMuted = GfxCompat::color565(145, 157, 169);
+const uint16_t kBlue = GfxCompat::color565(54, 170, 235);
+const uint16_t kBlueDark = GfxCompat::color565(29, 89, 126);
+const uint16_t kGold = GfxCompat::color565(247, 194, 68);
+const uint16_t kLocked = GfxCompat::color565(67, 75, 84);
 
 void glyph(char c, uint8_t rows[7]) {
     for (int i = 0; i < 7; ++i) rows[i] = 0;
