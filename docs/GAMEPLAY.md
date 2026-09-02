@@ -12,7 +12,7 @@ The game aims for the feel of real hydraulic installations while using simplifie
 
 ## 2. Board
 
-- Standard board: 10 × 6 grid.
+- Standard board: 10 × 7 grid on the 800 × 480 CrowPanel display.
 - Most pieces occupy one cell.
 - Special pieces may occupy multiple cells when required by a phase.
 - The whole map is visible during play.
@@ -20,14 +20,18 @@ The game aims for the feel of real hydraulic installations while using simplifie
 - Some infrastructure can be pre-built and fixed.
 - The source connection is pre-built.
 
-## 3. Construction
+## 3. Construction and touch controls
 
 - Tap an empty cell to place the currently selected piece.
-- Tap an existing pipe to rotate it 90 degrees.
+- Tap an existing pipe briefly to rotate it 90 degrees clockwise.
+- Press and hold an existing pipe for approximately 450 ms to remove it.
+- The hold gesture is only a removal gesture; it does not also rotate the pipe.
 - Pieces appear immediately; there is no placement animation.
 - Pieces may be placed while disconnected from the active water system.
 - There is no undo.
 - A mistake must be corrected by removing/rebuilding the affected installation.
+
+The separate on-screen remove-mode toggle is intentionally not used. The same board touch area has a simple two-action vocabulary: **tap = rotate, hold = remove**.
 
 ## 4. Removal
 
@@ -79,269 +83,159 @@ Pressure rises when flow is obstructed, including:
 - attempting to climb in side-view without sufficient lift;
 - other restrictions introduced by later phases.
 
-Opening a restriction allows pressure to fall progressively.
+## 9. Pressure limits and rupture
 
-Pressure is intentionally simplified rather than physically simulated.
-
-Visual states:
-
-- Normal: stable blue water.
-- Medium: stronger/pulsing blue.
-- High: intense/purple pulsing.
-- Critical: red, faster pulsing and pipe shaking.
-
-Critical pressure provides a short reaction window before rupture.
-
-## 9. Rupture
-
-Each material has a pressure limit.
-
-If pressure exceeds the material limit, the pipe ruptures.
-
-- PVC has a lower pressure limit.
-- Copper has a higher pressure limit.
-- A rupture creates a permanent opening.
-- Water can continue escaping through the broken pipe.
-- The pipe cannot be repaired.
-- The player must eventually remove it after it becomes dry and replace it.
-- If the rupture makes the objective impossible, the phase ends in defeat immediately.
-- If pressure is reduced before rupture, the pipe returns to its normal state; there is no intermediate damaged-but-functional state.
+- Pressure is normalized for gameplay and can exceed the safe operating range before rupture.
+- Proposed visual thresholds: 0–49 normal, 50–74 medium, 75–94 high, 95–100 critical, above 100 rupture.
+- Normal pressure is blue.
+- Medium pressure is stronger/pulsing blue.
+- High pressure is purple/intense/pulsing.
+- Critical pressure is red with faster pulsing and shaking.
+- PVC has a lower pressure limit than copper.
+- The player receives a clear critical warning before rupture.
+- Opening a valve lowers pressure gradually.
+- If pressure falls below the critical range before rupture, the system returns to a safe visual state.
+- A rupture is permanent and creates a new opening/loss point. If the objective becomes impossible, the phase ends immediately.
 
 ## 10. Temperature
 
-Temperature belongs to the water volume.
+Temperature is a property of the water and is introduced in later phases.
 
-- Temperature is carried through the hydraulic network.
-- Heat loss is ignored initially.
-- Different-temperature waters do not automatically become mixed merely because their flows meet.
-- A Mixer is required for deliberate mixing.
-- Mixing uses a volume-weighted average temperature.
-- Example: 10 L at 90°C plus 10 L at 10°C produces 20 L at approximately 50°C.
-- Example: 10 L at 90°C plus 2 L at 10°C remains much closer to 90°C.
-- A short visual mixing animation can be used before the mixed volume becomes uniform.
-
-Temperature objectives may require a target range such as 35–45°C.
+- Sources may provide different temperatures.
+- Water carries its temperature without meaningful heat loss initially.
+- Different-temperature streams remain separate until they enter a Mixer.
+- A Mixer combines streams using volume-weighted average temperature.
+- Example: 10 L at 90°C plus 10 L at 10°C produces 20 L at 50°C.
+- Example: 10 L at 90°C plus 2 L at 10°C remains close to 90°C.
+- A short mixing animation communicates the transition to a uniform temperature.
+- Temperature can be represented visually by water color and used by phase objectives.
+- Material temperature effects are deferred; pressure determines pipe strength initially.
 
 ## 11. Gravity and side-view
 
-Top-down phases ignore physical height for gameplay purposes.
+Top-down phases ignore height.
 
-Side-view phases introduce height:
+Side-view phases introduce gravity and vertical lift.
 
-- Water naturally seeks lower levels.
-- Water does not automatically climb above the available pressure/lift.
-- Pumps provide reliable upward movement.
+- Water seeks lower levels.
+- Water cannot automatically climb above available pressure/lift.
+- Pumps provide additional lift.
+- Pump strengths are +1, +2, +3 and +4 grid levels.
+- Multiple pumps can be chained.
 - Height and pressure interact.
+- The visual layout must make elevation understandable without requiring text instructions.
 
-Top-down and side-view are separate phase types.
+## 12. Pieces
 
-## 12. Pumps
+Core pieces:
 
-Four pump strengths exist:
-
-- Pump 1: +1 grid level.
-- Pump 2: +2 grid levels.
-- Pump 3: +3 grid levels.
-- Pump 4: +4 grid levels.
-
-Multiple pumps may be used in series.
-
-Stronger pumps cost more and are visually distinct.
-
-## 13. Valves
-
-Valves are placeable pieces.
-
-- Open valve: water passes.
-- Closed valve: water is held back.
-- Continued input against a closed valve increases pressure progressively.
-- Opening the valve allows the stored pressure to fall progressively.
-- Valves can therefore be used to control a live installation and create opportunities to safely empty sections before rebuilding.
-
-## 14. Reservoirs
-
-Reservoirs store substantially more water than normal pipe segments.
-
-- Water can enter and accumulate.
-- Water can leave through connected outlets.
-- A full reservoir receiving more water causes overflow/loss.
-
-## 15. Sources
-
-A phase can have one or two water sources.
-
-- Source connection starts pre-built.
-- A source may be represented at the edge of the board or as a source cell, depending on the phase.
-- Some phases start immediately.
-- Others start after a programmed delay, such as 10 seconds.
-- A visual/audio warning can precede delayed activation.
-- Once active, a finite source continues until its available water is consumed; a continuous source continues until the phase objective ends.
-
-## 16. Piece queue and inventory
-
-Two main inventory modes exist.
-
-### NEXT PIPE
-
-The player must use the current queue piece.
-
-- Current piece plus two future pieces are visible.
-- After placement, the queue advances immediately.
-- HOLD works like a Tetris-style hold slot.
-- Inventory is finite per phase rather than infinite.
-
-### FREE PICK
-
-The player chooses any available piece from the phase's repository.
-
-- The repository is limited.
-- Each piece consumes resources when placed.
-- Running out of resources can make the objective impossible and therefore causes defeat.
-
-Recommended selection hierarchy: choose shape first, then material/function when applicable.
-
-## 17. Materials and economy
-
-PVC and copper are the initial materials.
-
-### PVC
-
-- Cheap.
-- Lower pressure resistance.
-
-### Copper
-
-- More expensive.
-- Higher pressure resistance.
-
-Money is a per-phase resource, not a persistent campaign economy in the initial design.
-
-Money is deducted when a piece is placed.
-
-A more expensive but safer construction is a valid solution.
-
-## 18. Objectives
-
-There is no universal objective. Each phase defines one or more goals, such as:
-
-- connect source A to destination B;
-- contain all water;
-- produce a target volume of warm water;
-- lose no more than a specified volume;
-- remain below a pressure limit;
-- fill a reservoir;
-- deliver water to a target height;
-- combinations such as delivering 100 L at 40–45°C with no more than 10 L loss.
-
-When delivery is the objective, the destination should be represented as a physical/visual object.
-
-## 19. Victory
-
-Victory occurs immediately when the phase objective is satisfied.
-
-The hydraulic system remains visible during a short victory animation.
-
-## 20. Defeat
-
-A phase is lost when the objective becomes mathematically impossible, including cases such as:
-
-- water loss exceeds the phase limit;
-- required resources are exhausted;
-- a rupture or other failure makes the objective impossible;
-- a phase-specific fail condition is reached.
-
-## 21. Time
-
-Time has two possible roles:
-
-- Some phases have a real countdown and reaching zero causes defeat.
-- Other phases have no time-based failure; time is only relevant to star performance.
-
-There is no speed-up button.
-
-Active gameplay is not paused during normal play.
-
-## 22. Stars
-
-Every phase awards up to three stars.
-
-The baseline is:
-
-- 1 star: complete the objective.
-- 2 stars: complete it with strong water efficiency.
-- 3 stars: complete it with strong overall efficiency, using phase-appropriate measures such as water loss, money/resources and/or time.
-
-Exact thresholds are level-specific and are balancing data rather than core simulation rules.
-
-Stars encourage replay and optimization but do not block campaign progression.
-
-## 23. Progression
-
-Campaign structure:
-
-**World/Chapter → Phases**
-
-Phase selection uses a world map.
-
-- New mechanics are introduced progressively.
-- Completed phases can be replayed.
-- There is no explicit Easy/Normal/Hard selector.
-- Difficulty increases naturally through objectives, restrictions, combinations and environments.
-- The phase shows the problem/environment, not its solution.
-- Some phases may contain pre-built infrastructure.
-
-## 24. Phase types
-
-The game supports distinct phase formats, including:
-
-- top-down construction;
-- side-view construction with gravity and height;
-- one-source systems;
-- two-source systems;
-- phases with pre-existing infrastructure;
-- phases with immediate water;
-- phases with delayed activation;
-- phases with finite water;
-- phases with continuous supply;
-- phases combining multiple simultaneous objectives.
-
-The player can build while water is flowing.
-
-## 25. Design philosophy
-
-Water Pipe should feel like a puzzle with action rather than a static logic puzzle.
-
-The intended emotional rhythm is:
-
-**Plan → Build → Start → Watch → Panic a little → React → Recover → Succeed**
-
-The game should use visual teaching rather than text-heavy tutorials. Real-world hydraulic installations are the inspiration, while exaggerated water movement, pressure warnings, leaks and ruptures provide game readability and fun.
-
-Multiple valid solutions should exist whenever practical. The game evaluates the player's result, not whether they discovered one predetermined construction.
-
-## 26. Initial piece catalog
-
-Core MVP pieces:
-
-- Straight pipe
-- Curve pipe
-- T pipe
-- Cross pipe
+- Straight
+- Curve
+- T
+- Cross
 - Cap
-- Valve
 - Splitter 2-way
 - Splitter 3-way
 - Mixer
+- Valve
+- Pump 1–4
 - Reservoir
-- Pump 1
-- Pump 2
-- Pump 3
-- Pump 4
-- PVC material
-- Copper material
+- PVC
+- Copper
 
-Potential future equipment such as relief valves, one-way pipes, reducers, heaters, coolers, leak pipes and steel are not required for the MVP.
+Future optional pieces include relief valves, one-way pipes, reducers, heaters, coolers, leak pipes and steel.
 
-## 27. Restart
+## 13. Inventory
 
-Restart is available through the game/menu interface and completely resets the current phase to its initial state.
+- Standard mode is NEXT PIPE: current piece plus two upcoming pieces.
+- One HOLD slot is available.
+- HOLD behaves like a Tetris-style hold and is subject to its placement cooldown rule.
+- Inventory is finite per phase.
+- Later modes may allow FREE PICK.
+
+## 14. Materials and economy
+
+- PVC is cheaper and has lower pressure resistance.
+- Copper is more expensive and has higher pressure resistance.
+- Money is deducted when a piece is placed.
+- Removing a dry piece does not refund its cost.
+- Initial economy is per-level budget rather than a persistent campaign economy.
+
+## 15. Reservoirs
+
+Reservoirs have much larger capacity than normal pipe segments.
+
+- A reservoir can store and release water through connected outlets.
+- A full reservoir receiving additional water can overflow and lose volume.
+
+## 16. Sources
+
+- A phase can have one or two sources.
+- Sources can be located at an edge or in a cell.
+- The source connection is pre-built.
+- Some sources start immediately; others may have a delay such as 10 seconds.
+- Finite sources stop when their available water is consumed.
+- Continuous sources keep supplying until the objective is completed.
+- The player builds while water is flowing.
+
+## 17. Objectives
+
+There is no universal win condition.
+
+Examples:
+
+- connect source A to target B;
+- contain all water;
+- deliver a target volume of warm water;
+- keep water loss below a limit;
+- keep pressure below a limit;
+- fill a reservoir;
+- deliver water to a target elevation;
+- combinations of the above.
+
+Objectives should be communicated primarily through the physical installation and visual targets.
+
+## 18. Victory
+
+- Victory occurs immediately when the objective is satisfied.
+- A short victory animation may play while the completed hydraulic system remains visible.
+- Completed phases remain replayable.
+
+## 19. Defeat
+
+Defeat occurs immediately when the objective becomes mathematically impossible.
+
+Examples include:
+
+- water loss exceeds an unavoidable limit;
+- required resources are exhausted;
+- a rupture makes the objective impossible;
+- a phase-specific failure condition is reached.
+
+Some phases may use countdowns; others use time only for star scoring.
+
+## 20. Stars
+
+Each phase awards up to three stars.
+
+- One star: complete the objective.
+- Two stars: strong water efficiency.
+- Three stars: strong overall efficiency.
+- Exact thresholds are balance data per phase.
+- Stars do not block campaign progression.
+
+## 21. Campaign structure
+
+- Worlds/chapters contain multiple phases.
+- The world map is used to select phases.
+- Completed phases are replayable.
+- Difficulty increases naturally through new mechanics and combinations rather than explicit Easy/Normal/Hard modes.
+
+Suggested progression:
+
+- World 1 — Basic Water: grid, straight/curve, T/cross, source/target, flow, loss and capacity.
+- World 2 — Control and Pressure: valves, finite water, pressure, PVC limits and rupture.
+- World 3 — Capacity and Distribution: reservoirs, splitters, multiple routes and volume objectives.
+- World 4 — Height: side-view, gravity and pumps.
+- World 5 — Temperature: hot/cold sources, separate streams and Mixer.
+- Later worlds combine the systems.
