@@ -27,8 +27,8 @@ bool pointInBoard(int x, int y, int &col, int &row) {
 }  // namespace
 
 WpAction pollInput() {
-    // A real touch is tracked while the finger remains down. We suppress
-    // the normal tap until release so a long press cannot rotate first.
+    // Track a real finger while it remains down. The short tap is deliberately
+    // delayed until release so a long press cannot rotate the same pipe first.
     if (TouchDriver::rawTouched()) {
         const int x = TouchDriver::rawX();
         const int y = TouchDriver::rawY();
@@ -48,13 +48,10 @@ WpAction pollInput() {
             longPressFired = true;
             return {WpActionType::CellHeld, fingerCol, fingerRow};
         }
-
         return {};
     }
 
     if (fingerDown) {
-        // If this touch already produced the hold action, the release must
-        // not generate a second tap/rotation for the same physical gesture.
         suppressNextTap = longPressFired;
         fingerDown = false;
         longPressFired = false;
@@ -63,8 +60,9 @@ WpAction pollInput() {
     }
 
     if (suppressNextTap) {
+        // Consume the release edge, but deliberately emit no second action.
+        TouchDriver::consumeTapInArea(0, 0, SCREEN_W - 1, SCREEN_H - 1);
         suppressNextTap = false;
-        // The real driver owns the release edge. There is no second action.
         return {};
     }
 
