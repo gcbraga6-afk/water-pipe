@@ -76,6 +76,11 @@ WpAction pollInput() {
                                       RESTART_RECT.y + RESTART_RECT.h - 1)) {
         return {WpActionType::RestartTapped, -1, -1};
     }
+    if (TouchDriver::consumeTapInArea(EXIT_RECT.x, EXIT_RECT.y,
+                                      EXIT_RECT.x + EXIT_RECT.w - 1,
+                                      EXIT_RECT.y + EXIT_RECT.h - 1)) {
+        return {WpActionType::ExitTapped, -1, -1};
+    }
     for (int row = 0; row < BOARD_ROWS; ++row) {
         for (int col = 0; col < BOARD_COLS; ++col) {
             const Rect r = cellRect(col, row);
