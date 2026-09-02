@@ -22,7 +22,6 @@ wp::WpHudCache hudCache;
 wp::Level currentLevel;
 wp::Outcome lastOutcome = wp::Outcome::None;
 uint32_t lastFrameMs = 0;
-bool removeMode = false;
 
 void loadLevel(const wp::Level &level) {
     currentLevel = level;
@@ -31,7 +30,6 @@ void loadLevel(const wp::Level &level) {
     inventory.load(level);
     hudCache = wp::WpHudCache{};
     lastOutcome = wp::Outcome::None;
-    removeMode = false;
     if (gfx) wp::renderInit(gfx, board);
     lastFrameMs = wp::nowMs();
 }
@@ -53,14 +51,13 @@ bool loop() {
         loadLevel(currentLevel);
         return false;
     }
-    if (action.type == wp::WpActionType::RemoveModeToggled) {
-        removeMode = !removeMode;
-    }
 
     const wp::Outcome outcomeBeforeInput = currentOutcome();
     if (outcomeBeforeInput == wp::Outcome::None) {
         switch (action.type) {
             case wp::WpActionType::CellTapped: {
+                // Empty cell: place the current piece.
+                // Occupied cell: a short tap rotates the pipe.
                 wp::Cell &c = board.at(action.col, action.row);
                 if (c.type == wp::PieceType::Empty) {
                     if (inventory.hand() != wp::PieceType::Empty &&
@@ -68,11 +65,16 @@ bool loop() {
                         inventory.consumeHand();
                         Audio::wpPlace();
                     }
-                } else if (removeMode) {
-                    if (board.remove(action.col, action.row)) Audio::wpRemove();
                 } else if (board.canRotate(action.col, action.row)) {
                     board.rotate(action.col, action.row);
                     Audio::wpRotate();
+                }
+                break;
+            }
+            case wp::WpActionType::CellHeld: {
+                // Press-and-hold on an occupied, dry pipe removes it.
+                if (board.canRemove(action.col, action.row) && board.remove(action.col, action.row)) {
+                    Audio::wpRemove();
                 }
                 break;
             }
@@ -103,7 +105,7 @@ bool loop() {
 
     if (gfx) {
         wp::renderBoard(gfx, board, sim);
-        wp::renderHud(gfx, inventory, sim, currentLevel, outcome, removeMode, hudCache);
+        wp::renderHud(gfx, inventory, sim, currentLevel, outcome, false, hudCache);
     }
 
     return false;  // Water Pipe has no in-game exit gesture yet; the
