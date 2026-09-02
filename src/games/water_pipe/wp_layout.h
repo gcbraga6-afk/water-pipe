@@ -39,7 +39,12 @@ constexpr Rect QUEUE_RECT[3] = {
 
 constexpr Rect DELIVERED_METER_RECT = {HUD_X, 314, HUD_W, 24};
 constexpr Rect LOSS_METER_RECT = {HUD_X, 348, HUD_W, 24};
-constexpr Rect RESTART_RECT = {HUD_X, 416, HUD_W, 56};
+
+// Bottom controls: restart current phase, or save and leave to the Water
+// Pipe main menu. The icons are deliberately large because the panel is
+// touch-first and the HUD is narrow.
+constexpr Rect RESTART_RECT = {HUD_X, 416, 52, 56};
+constexpr Rect EXIT_RECT = {HUD_X + 60, 416, HUD_W - 60, 56};
 
 inline Rect cellRect(int col, int row) {
     return {BOARD_ORIGIN_X + col * CELL_SIZE, BOARD_ORIGIN_Y + row * CELL_SIZE, CELL_SIZE, CELL_SIZE};
