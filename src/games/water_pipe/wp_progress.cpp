@@ -1,7 +1,6 @@
 #include "wp_progress.h"
 
 #include <algorithm>
-#include <cstring>
 
 #if defined(ARDUINO) && __has_include(<Preferences.h>)
 #include <Preferences.h>
@@ -13,8 +12,8 @@
 namespace wp {
 
 namespace {
-constexpr uint32_t kMagic = 0x57505431u;  // "WPT1"
-constexpr uint16_t kVersion = 1;
+constexpr uint32_t kMagic = PROGRESS_MAGIC;
+constexpr uint16_t kVersion = PROGRESS_VERSION;
 constexpr char kNamespace[] = "waterpipe";
 constexpr char kKey[] = "save";
 
@@ -70,15 +69,15 @@ void ProgressStore::recordPhaseResult(ProgressData &data, int phase, int score, 
     if (stars < 0) stars = 0;
     if (stars > 3) stars = 3;
     data.stars[phase] = std::max(data.stars[phase], static_cast<uint8_t>(stars));
-    data.unlockedPhase = std::max(data.unlockedPhase,
-                                   static_cast<uint8_t>(std::min(phase + 1, MAX_PHASES - 1)));
+    const int nextPhase = phase + 1;
+    if (nextPhase < IMPLEMENTED_PHASES)
+        data.unlockedPhase = std::max(data.unlockedPhase, static_cast<uint8_t>(nextPhase));
 
     if (score <= 0) return;
     for (int i = 0; i < MAX_HIGHSCORES; ++i) {
         if (score > data.highScores[i].score) {
-            for (int j = MAX_HIGHSCORES - 1; j > i; --j) {
+            for (int j = MAX_HIGHSCORES - 1; j > i; --j)
                 data.highScores[j] = data.highScores[j - 1];
-            }
             data.highScores[i] = {score, static_cast<uint8_t>(phase)};
             break;
         }
