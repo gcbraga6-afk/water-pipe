@@ -72,6 +72,16 @@ WpAction pollInput() {
                                       HOLD_RECT.y + HOLD_RECT.h - 1)) {
         return {WpActionType::HoldTapped, -1, -1};
     }
+    if (TouchDriver::consumeTapInArea(MATERIAL_PVC_RECT.x, MATERIAL_PVC_RECT.y,
+                                      MATERIAL_PVC_RECT.x + MATERIAL_PVC_RECT.w - 1,
+                                      MATERIAL_PVC_RECT.y + MATERIAL_PVC_RECT.h - 1)) {
+        return {WpActionType::MaterialPvcTapped, -1, -1};
+    }
+    if (TouchDriver::consumeTapInArea(MATERIAL_CU_RECT.x, MATERIAL_CU_RECT.y,
+                                      MATERIAL_CU_RECT.x + MATERIAL_CU_RECT.w - 1,
+                                      MATERIAL_CU_RECT.y + MATERIAL_CU_RECT.h - 1)) {
+        return {WpActionType::MaterialCuTapped, -1, -1};
+    }
     if (TouchDriver::consumeTapInArea(RESTART_RECT.x, RESTART_RECT.y,
                                       RESTART_RECT.x + RESTART_RECT.w - 1,
                                       RESTART_RECT.y + RESTART_RECT.h - 1)) {

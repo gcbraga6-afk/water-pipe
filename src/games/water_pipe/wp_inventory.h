@@ -17,6 +17,7 @@ public:
         PieceType held = PieceType::Empty;
         bool hasHeld = false;
         bool holdUsed = false;
+        Material selectedMaterial = Material::PVC;
     };
 
     void load(const Level &level);
@@ -29,6 +30,14 @@ public:
 
     PieceType held() const { return held_; }
     bool hasHeld() const { return hasHeld_; }
+
+    // Material the player has picked for the piece in hand. Purely a
+    // display property until pressure exists (docs/TECHNICAL_DESIGN.md
+    // section 25, step 13) — Board::place() already accepts a material
+    // per placement, this just lets the player choose it instead of it
+    // always being PVC.
+    Material selectedMaterial() const { return selectedMaterial_; }
+    void setSelectedMaterial(Material m) { selectedMaterial_ = m; }
 
     // Nothing left to place at all: no hand piece and no usable held one.
     bool empty() const;
@@ -53,6 +62,7 @@ private:
     PieceType held_ = PieceType::Empty;
     bool hasHeld_ = false;
     bool holdUsed_ = false;
+    Material selectedMaterial_ = Material::PVC;
 };
 
 }  // namespace wp

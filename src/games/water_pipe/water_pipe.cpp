@@ -44,7 +44,7 @@ void resetProgressDefaults() {
 void saveResume() {
     progress.magic = wp::PROGRESS_MAGIC;
     progress.version = wp::PROGRESS_VERSION;
-    progress.resume = wp::ResumeSnapshot{};
+    progress.resume = wp::ResumeSnapshot();
     progress.resume.valid = true;
     progress.resume.phase = 0;
     progress.resume.elapsedMs = phaseElapsedMs;
@@ -105,7 +105,7 @@ int phaseStars() {
 void recordVictoryOnce() {
     if (lastOutcome == wp::Outcome::Victory) return;
     wp::ProgressStore::recordPhaseResult(progress, 0, phaseScore(), phaseStars());
-    progress.resume = wp::ResumeSnapshot{};
+    progress.resume = wp::ResumeSnapshot();
     progressStore.save(progress);
 }
 
@@ -206,7 +206,7 @@ bool loop() {
                 wp::Cell &c = board.at(action.col, action.row);
                 if (c.type == wp::PieceType::Empty) {
                     if (inventory.hand() != wp::PieceType::Empty &&
-                        board.place(action.col, action.row, inventory.hand(), wp::Material::PVC)) {
+                        board.place(action.col, action.row, inventory.hand(), inventory.selectedMaterial())) {
                         inventory.consumeHand();
                         Audio::wpPlace();
                     }
@@ -223,6 +223,12 @@ bool loop() {
             case wp::WpActionType::HoldTapped:
                 inventory.swapHold();
                 Audio::wpHold();
+                break;
+            case wp::WpActionType::MaterialPvcTapped:
+                inventory.setSelectedMaterial(wp::Material::PVC);
+                break;
+            case wp::WpActionType::MaterialCuTapped:
+                inventory.setSelectedMaterial(wp::Material::Copper);
                 break;
             default:
                 break;

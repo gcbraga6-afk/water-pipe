@@ -13,6 +13,8 @@ enum class WpActionType {
     HoldTapped,
     RestartTapped,
     ExitTapped,
+    MaterialPvcTapped,
+    MaterialCuTapped,
 };
 
 struct WpAction {

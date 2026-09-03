@@ -11,6 +11,7 @@ void WpInventory::load(const Level &level) {
     held_ = PieceType::Empty;
     hasHeld_ = false;
     holdUsed_ = false;
+    selectedMaterial_ = Material::PVC;
     hand_ = draw();
 }
 
@@ -55,6 +56,7 @@ WpInventory::Snapshot WpInventory::snapshot() const {
     s.held = held_;
     s.hasHeld = hasHeld_;
     s.holdUsed = holdUsed_;
+    s.selectedMaterial = selectedMaterial_;
     return s;
 }
 
@@ -66,6 +68,7 @@ void WpInventory::restore(const Snapshot &s) {
     held_ = s.held;
     hasHeld_ = s.hasHeld;
     holdUsed_ = s.holdUsed;
+    selectedMaterial_ = s.selectedMaterial;
 }
 
 }  // namespace wp
