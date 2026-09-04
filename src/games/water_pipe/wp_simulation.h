@@ -19,6 +19,9 @@ struct SimState {
     bool hasStarted = false;     // true once the source delay has elapsed
     uint32_t delayRemainingMs = 0;
     uint32_t accumulatorMs = 0;
+    uint8_t warningStage = 0;
+    bool sourceBlinkOn = false;
+    uint32_t blinkAccumulatorMs = 0;
 
     bool reached[BOARD_CELLS] = {};
     bool leaking[BOARD_CELLS] = {};
@@ -46,6 +49,12 @@ void tickSimulation(SimState &state, Board &board, const Level &level, uint32_t 
 // Defeat is only meaningful once the network has genuinely stalled: no
 // growth on the last tick, the target hasn't been reached yet, and the
 // player has no pieces left to place (queue + hold both empty).
+inline bool isDefeated(const SimState &state, const Level &level, bool inventoryEmpty) {
+    if (state.hasStarted && !state.victory && state.totalLoss > level.maxLoss) return true;
+    return state.hasStarted && !state.victory && !state.targetReached &&
+           !state.lastTickProgressed && inventoryEmpty;
+}
+
 inline bool isDefeated(const SimState &state, bool inventoryEmpty) {
     return state.hasStarted && !state.victory && !state.targetReached &&
            !state.lastTickProgressed && inventoryEmpty;
