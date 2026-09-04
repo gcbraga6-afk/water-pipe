@@ -55,11 +55,11 @@ The exact filenames can change during implementation, but responsibilities shoul
 
 ## 4. Fixed-size data
 
-Because the board is only 10 × 6, the core simulation should use fixed-size arrays.
+Because the board is only 10 × 7, the core simulation should use fixed-size arrays.
 
 Maximum normal board cells:
 
-`60`
+`70`
 
 Avoid dynamic allocation in the main game loop.
 
@@ -396,7 +396,7 @@ If necessary, rendering can be reduced while keeping the hydraulic simulation st
 
 The first playable build should include only:
 
-- 10 × 6 top-down board;
+- 10 × 7 top-down board;
 - straight;
 - curve;
 - T;
@@ -422,7 +422,7 @@ They should be added incrementally after the basic loop is proven on hardware.
 ## 25. Implementation order
 
 1. Host game integration.
-2. 10 × 6 board rendering.
+2. 10 × 7 board rendering.
 3. Touch placement and rotation.
 4. Basic piece connection masks.
 5. Source and target.
