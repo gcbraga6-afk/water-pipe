@@ -6,17 +6,32 @@ namespace wp {
 
 void resetSimulation(SimState &state, const Level &level) {
     state = SimState{};
-    state.waterActive = true;
+    state.waterActive = false;
     state.delayRemainingMs = level.sourceDelayMs;
+    state.warningStage = 0;
+    state.sourceBlinkOn = false;
+    state.blinkAccumulatorMs = 0;
 }
 
 static void stepOnce(SimState &s, Board &board, const Level &level) {
     if (s.victory) return;
-    if (!s.waterActive) return;
 
-    if (s.delayRemainingMs > 0) {
-        s.delayRemainingMs = (s.delayRemainingMs >= SIM_TIMESTEP_MS) ? s.delayRemainingMs - SIM_TIMESTEP_MS : 0;
-        return;
+    if (!s.waterActive) {
+        if (s.delayRemainingMs > 0) {
+            s.delayRemainingMs = (s.delayRemainingMs >= SIM_TIMESTEP_MS) ? s.delayRemainingMs - SIM_TIMESTEP_MS : 0;
+            s.blinkAccumulatorMs += SIM_TIMESTEP_MS;
+            if (s.blinkAccumulatorMs >= 250) {
+                s.blinkAccumulatorMs = 0;
+                s.sourceBlinkOn = !s.sourceBlinkOn;
+            }
+            if (s.delayRemainingMs <= 3000 && s.warningStage == 0) s.warningStage = 3;
+            else if (s.delayRemainingMs <= 2000 && s.warningStage == 3) s.warningStage = 2;
+            else if (s.delayRemainingMs <= 1000 && s.warningStage == 2) s.warningStage = 1;
+            return;
+        }
+        s.waterActive = true;
+        s.warningStage = 4;
+        s.sourceBlinkOn = true;
     }
 
     const int sourceIdx = Board::index(level.sourceCol, level.sourceRow);
