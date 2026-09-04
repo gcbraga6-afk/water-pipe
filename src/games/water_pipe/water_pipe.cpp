@@ -34,6 +34,8 @@ GameMode mode = GameMode::MainMenu;
 uint32_t lastFrameMs = 0;
 uint32_t phaseElapsedMs = 0;
 uint32_t lastSaveMs = 0;
+int currentPhase = 0;
+uint32_t outcomeHoldMs = 0;
 
 void resetProgressDefaults() {
     progress = wp::ProgressData{};
@@ -46,7 +48,7 @@ void saveResume() {
     progress.version = wp::PROGRESS_VERSION;
     progress.resume = wp::ResumeSnapshot();
     progress.resume.valid = true;
-    progress.resume.phase = 0;
+    progress.resume.phase = static_cast<uint8_t>(currentPhase);
     progress.resume.elapsedMs = phaseElapsedMs;
     for (int i = 0; i < wp::BOARD_CELLS; ++i) progress.resume.cells[i] = board.at(i);
     progress.resume.sim = sim;
@@ -55,8 +57,9 @@ void saveResume() {
     lastSaveMs = wp::nowMs();
 }
 
-void loadLevel(const wp::Level &level, bool preserveResume = false) {
+void loadLevel(const wp::Level &level, int phaseIndex, bool preserveResume = false) {
     currentLevel = level;
+    currentPhase = phaseIndex;
     board.loadLevel(level);
     wp::resetSimulation(sim, level);
     inventory.load(level);
@@ -65,13 +68,16 @@ void loadLevel(const wp::Level &level, bool preserveResume = false) {
     phaseElapsedMs = 0;
     lastFrameMs = wp::nowMs();
     lastSaveMs = lastFrameMs;
+    outcomeHoldMs = 0;
     if (gfx) wp::renderInit(gfx, board);
     if (!preserveResume) saveResume();
 }
 
 bool restoreResume() {
-    if (!progress.resume.valid || progress.resume.phase != 0) return false;
-    loadLevel(wp::levelConnect(), true);
+    if (!progress.resume.valid || progress.resume.phase >= wp::IMPLEMENTED_PHASES) return false;
+    const wp::Level *level = wp::levelByIndex(progress.resume.phase);
+    if (!level) return false;
+    loadLevel(*level, progress.resume.phase, true);
     for (int i = 0; i < wp::BOARD_CELLS; ++i) board.at(i) = progress.resume.cells[i];
     sim = progress.resume.sim;
     inventory.restore(progress.resume.inventory);
@@ -86,7 +92,7 @@ bool restoreResume() {
 
 wp::Outcome currentOutcome() {
     if (sim.victory) return wp::Outcome::Victory;
-    if (wp::isDefeated(sim, inventory.empty())) return wp::Outcome::Defeat;
+    if (wp::isDefeated(sim, currentLevel, inventory.empty())) return wp::Outcome::Defeat;
     return wp::Outcome::None;
 }
 
@@ -104,7 +110,7 @@ int phaseStars() {
 
 void recordVictoryOnce() {
     if (lastOutcome == wp::Outcome::Victory) return;
-    wp::ProgressStore::recordPhaseResult(progress, 0, phaseScore(), phaseStars());
+    wp::ProgressStore::recordPhaseResult(progress, currentPhase, phaseScore(), phaseStars());
     progress.resume = wp::ResumeSnapshot();
     progressStore.save(progress);
 }
@@ -146,9 +152,12 @@ bool handleMenu() {
         for (int i = 0; i < 6; ++i) {
             const wp::MenuRect &r = wp::MENU_PHASE_BUTTONS[i];
             if (!TouchDriver::consumeTapInArea(r.x, r.y, r.x + r.w - 1, r.y + r.h - 1)) continue;
-            if (i == 0 && i <= progress.unlockedPhase) {
-                loadLevel(wp::levelConnect());
-                mode = GameMode::Playing;
+            if (i < wp::IMPLEMENTED_PHASES && i <= progress.unlockedPhase) {
+                const wp::Level *level = wp::levelByIndex(i);
+                if (level) {
+                    loadLevel(*level, i);
+                    mode = GameMode::Playing;
+                }
             }
             return false;
         }
@@ -195,7 +204,7 @@ bool loop() {
     }
 
     if (action.type == wp::WpActionType::RestartTapped) {
-        loadLevel(currentLevel);
+        loadLevel(currentLevel, currentPhase);
         return false;
     }
 
@@ -239,8 +248,17 @@ bool loop() {
         lastFrameMs = now;
         phaseElapsedMs += dt;
         const bool wasLeaking = sim.totalLoss > 0;
+        const uint8_t warningBefore = sim.warningStage;
+        const bool activeBefore = sim.waterActive;
+        const bool blinkBefore = sim.sourceBlinkOn;
         wp::tickSimulation(sim, board, currentLevel, dt);
         if (!wasLeaking && sim.totalLoss > 0) Audio::wpLeak();
+        if (sim.warningStage != warningBefore && sim.warningStage >= 1 && sim.warningStage <= 3)
+            Audio::wpFlowStart();
+        if (!activeBefore && sim.waterActive)
+            Audio::wpFlowStart();
+        if (sim.sourceBlinkOn != blinkBefore)
+            board.at(currentLevel.sourceCol, currentLevel.sourceRow).dirty = true;
 
         if (now - lastSaveMs >= 10000u) saveResume();
     } else {
@@ -252,9 +270,34 @@ bool loop() {
         if (outcome == wp::Outcome::Victory) {
             Audio::wpVictory();
             recordVictoryOnce();
+            outcomeHoldMs = 1400;
         } else {
             Audio::wpDefeat();
             saveResume();
+            outcomeHoldMs = 0;
+        }
+    }
+
+    if (outcome == wp::Outcome::Victory && outcomeHoldMs > 0) {
+        const uint32_t now = wp::nowMs();
+        const uint32_t dt = now - lastFrameMs;
+        lastFrameMs = now;
+        outcomeHoldMs = dt >= outcomeHoldMs ? 0 : outcomeHoldMs - dt;
+        if (outcomeHoldMs == 0) {
+            const int next = currentPhase + 1;
+            if (next < wp::IMPLEMENTED_PHASES) {
+                const wp::Level *nextLevel = wp::levelByIndex(next);
+                if (nextLevel) {
+                    loadLevel(*nextLevel, next);
+                    lastOutcome = wp::Outcome::None;
+                    return false;
+                }
+            }
+            mode = GameMode::PhaseSelect;
+            menuScreen = wp::MenuScreen::Phases;
+            if (gfx) wp::renderMenu(gfx, menuScreen, progress);
+            lastOutcome = wp::Outcome::None;
+            return false;
         }
     }
     lastOutcome = outcome;
