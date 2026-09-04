@@ -151,7 +151,10 @@ void drawCell(GfxCompat *g, Board &board, int col_, int row, const SimState &sim
 
     if (c.type == PieceType::Source) {
         drawPipeVisual(g, r.x, r.y, r.w, connectionMask(c.type, c.rotation), Material::PVC, c.volume > 0);
-        g->fillCircle(r.x + r.w / 2, r.y + r.h / 2, 10, kSource);
+        const int radius = (sim.waterActive || sim.sourceBlinkOn) ? 10 : 5;
+        g->fillCircle(r.x + r.w / 2, r.y + r.h / 2, radius, kSource);
+        if (!sim.waterActive && sim.sourceBlinkOn)
+            g->drawRoundRect(r.x + 8, r.y + 8, r.w - 16, r.h - 16, 8, kSource);
     } else if (c.type == PieceType::Target) {
         drawPipeVisual(g, r.x, r.y, r.w, connectionMask(c.type, c.rotation), Material::PVC, c.volume > 0);
         const int pad = r.w / 4;
