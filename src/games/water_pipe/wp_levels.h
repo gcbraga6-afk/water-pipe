@@ -21,9 +21,11 @@ struct Level {
     int targetCol, targetRow;
     Rotation targetRotation;
 
-    // Delivered-volume objective (docs/GAMEPLAY.md section 18,
-    // "Phase 1 - Connect": deliver water to the target).
+    // Delivered-volume objective (docs/GAMEPLAY.md section 18).
     int requiredVolume;
+
+    // Maximum accumulated water loss tolerated by this phase.
+    int maxLoss;
 
     // Programmed start delay before the source activates
     // (docs/GAMEPLAY.md section 15).
@@ -38,5 +40,8 @@ struct Level {
 // Phase 1 - Connect (docs/LEVEL_DESIGN.md section 12): one source, one
 // target, straight/curve pieces only, deliver water to the target.
 const Level &levelConnect();
+const Level &levelDontSpill();
+const Level &levelJunction();
+const Level *levelByIndex(int phase);
 
 }  // namespace wp
