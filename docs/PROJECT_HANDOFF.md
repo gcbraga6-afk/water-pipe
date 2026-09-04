@@ -779,3 +779,26 @@ Ao continuar:
 3. não reabrir decisões já fechadas;
 4. tratar os pontos abertos como assuntos de teste/balanceamento;
 5. manter o foco no hardware CrowPanel.
+
+## MVP gameplay implementation status — 2026-09-05
+
+The first playable MVP campaign now implements the approved core loop:
+
+**BUILD → WARNING → WATER → REACT → OBJECTIVE COMPLETE → NEXT PHASE**
+
+- Every MVP phase starts dry and has a phase-specific preparation delay.
+- The source blinks during preparation.
+- The activation warning uses three short audio accents as the delay approaches.
+- Water starts automatically after preparation and keeps the existing progressive-fill behavior.
+- Each phase has a configurable maximum water-loss tolerance.
+- Exceeding the loss tolerance ends the phase as a defeat.
+- The MVP contains three playable phases:
+  1. Connect
+  2. Don't Spill
+  3. Junction
+- Completing a phase records score/stars, unlocks the next phase, and advances automatically after a short result pause.
+- Continue/resume stores the actual phase index instead of always resuming phase 0.
+- Earlier completed phases remain replayable.
+- Native tests cover the three level definitions, timed activation, loss defeat, and known solutions.
+
+This is the gameplay MVP foundation. Pressure, temperature, gravity, pumps, reservoirs and additional worlds remain later campaign systems.
