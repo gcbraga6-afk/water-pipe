@@ -75,14 +75,10 @@ void testSimulationVictory() {
     board.loadLevel(level);
     SimState sim;
     resetSimulation(sim, level);
-    auto placeRotated = [&](int c, int r, PieceType type, int rotations) {
-        CHECK(board.place(c, r, type, Material::PVC));
-        for (int i = 0; i < rotations; ++i) CHECK(board.rotate(c, r));
-    };
-    for (int c = 1; c <= 4; ++c) placeRotated(c, 2, PieceType::Straight, 1);
-    placeRotated(5, 2, PieceType::Curve, 2);
-    placeRotated(5, 3, PieceType::Curve, 0);
-    for (int c = 6; c <= 8; ++c) placeRotated(c, 3, PieceType::Straight, 1);
+    for (int c = 1; c <= 8; ++c) {
+        CHECK(board.place(c, 3, PieceType::Straight, Material::PVC));
+        CHECK(board.rotate(c, 3));
+    }
     bool sawTargetReached = false;
     for (int tick = 0; tick < 2000 && !sim.victory; ++tick) {
         tickSimulation(sim, board, level, SIM_TIMESTEP_MS);
@@ -92,7 +88,7 @@ void testSimulationVictory() {
     CHECK(sim.victory);
     CHECK(sim.delivered >= level.requiredVolume);
     CHECK(sim.totalLoss == 0);
-    CHECK(!isDefeated(sim, true));
+    CHECK(!isDefeated(sim, level, true));
     std::puts("testSimulationVictory ok");
 }
 
@@ -103,13 +99,43 @@ void testSimulationDefeat() {
     board.loadLevel(level);
     SimState sim;
     resetSimulation(sim, level);
-    for (int tick = 0; tick < 50; ++tick) tickSimulation(sim, board, level, SIM_TIMESTEP_MS);
-    CHECK(sim.totalLoss > 0);
+    for (int tick = 0; tick < 170; ++tick) tickSimulation(sim, board, level, SIM_TIMESTEP_MS);
+    CHECK(sim.totalLoss > level.maxLoss);
     CHECK(!sim.targetReached);
     CHECK(!sim.victory);
-    CHECK(!isDefeated(sim, false));
-    CHECK(isDefeated(sim, true));
+    CHECK(isDefeated(sim, level, false));
     std::puts("testSimulationDefeat ok");
+}
+
+void testLevelSolutions() {
+    using namespace wp;
+    {
+        const Level &level = levelDontSpill();
+        Board board; board.loadLevel(level); SimState sim; resetSimulation(sim, level);
+        auto place = [&](int c, int r, PieceType t, int rot) {
+            CHECK(board.place(c, r, t, Material::PVC));
+            for (int i=0;i<rot;++i) CHECK(board.rotate(c,r));
+        };
+        for (int c=1;c<=4;++c) place(c,2,PieceType::Straight,1);
+        place(5,2,PieceType::Curve,1); place(5,3,PieceType::Straight,0); place(5,4,PieceType::Curve,0);
+        for (int c=6;c<=8;++c) place(c,4,PieceType::Straight,1);
+        for (int i=0;i<2000 && !sim.victory;++i) tickSimulation(sim,board,level,SIM_TIMESTEP_MS);
+        CHECK(sim.victory); CHECK(sim.totalLoss <= level.maxLoss);
+    }
+    {
+        const Level &level = levelJunction();
+        Board board; board.loadLevel(level); SimState sim; resetSimulation(sim, level);
+        auto place = [&](int c, int r, PieceType t, int rot) {
+            CHECK(board.place(c, r, t, Material::PVC));
+            for (int i=0;i<rot;++i) CHECK(board.rotate(c,r));
+        };
+        for (int c=1;c<=3;++c) place(c,3,PieceType::Straight,1);
+        place(4,3,PieceType::T,3); place(4,2,PieceType::Cap,2);
+        for (int c=5;c<=8;++c) place(c,3,PieceType::Straight,1);
+        for (int i=0;i<2000 && !sim.victory;++i) tickSimulation(sim,board,level,SIM_TIMESTEP_MS);
+        CHECK(sim.victory); CHECK(sim.totalLoss == 0);
+    }
+    std::puts("testLevelSolutions ok");
 }
 
 void testInventory() {
@@ -154,12 +180,40 @@ void testProgress() {
     CHECK(p.stars[0] == 2);
     CHECK(p.highScores[0].score == 820);
     CHECK(p.highScores[0].phase == 0);
-    CHECK(p.unlockedPhase == 0); // phase 2 is not implemented yet
+    CHECK(p.unlockedPhase == 1);
     ProgressStore::recordPhaseResult(p, 0, 950, 3);
     CHECK(p.stars[0] == 3);
     CHECK(p.highScores[0].score == 950);
     CHECK(p.highScores[1].score == 820);
     std::puts("testProgress ok");
+}
+
+void testCampaignLevels() {
+    using namespace wp;
+    CHECK(IMPLEMENTED_PHASES == 3);
+    CHECK(levelByIndex(0) != nullptr);
+    CHECK(levelByIndex(1) != nullptr);
+    CHECK(levelByIndex(2) != nullptr);
+    CHECK(levelByIndex(3) == nullptr);
+    CHECK(levelByIndex(0)->sourceDelayMs == 10000);
+    CHECK(levelByIndex(1)->sourceDelayMs == 8000);
+    CHECK(levelByIndex(2)->sourceDelayMs == 7000);
+    CHECK(levelByIndex(2)->maxLoss == 0);
+    std::puts("testCampaignLevels ok");
+}
+
+void testPreparationDelay() {
+    using namespace wp;
+    const Level &level = levelConnect();
+    Board board; board.loadLevel(level);
+    SimState sim; resetSimulation(sim, level);
+    tickSimulation(sim, board, level, level.sourceDelayMs - SIM_TIMESTEP_MS);
+    CHECK(!sim.waterActive);
+    CHECK(!sim.hasStarted);
+    tickSimulation(sim, board, level, SIM_TIMESTEP_MS * 2);
+    CHECK(sim.waterActive);
+    CHECK(sim.hasStarted);
+    std::puts("testPreparationDelay ok");
 }
 
 }  // namespace
@@ -173,6 +227,8 @@ int main() {
     testSimulationDefeat();
     testInventory();
     testProgress();
+    testCampaignLevels();
+    testPreparationDelay();
     std::printf("All %d checks passed.\n", g_checks);
     return 0;
 }
